@@ -41,6 +41,8 @@ module InPlaceMacrosHelper
 
     js_options = {}
 
+    options[:options] = options_for_javascript({:method => 'put'}.merge(options[:options] || {}))
+
     if protect_against_forgery?
       options[:with] ||= "Form.serialize(form)"
       options[:with] += " + '&authenticity_token=' + encodeURIComponent('#{form_authenticity_token}')"
@@ -57,7 +59,8 @@ module InPlaceMacrosHelper
     js_options['loadTextURL'] = "'#{url_for(options[:load_text_url])}'" if options[:load_text_url]        
     js_options['ajaxOptions'] = options[:options] if options[:options]
     js_options['htmlResponse'] = !options[:script] if options[:script]
-    js_options['callback']   = "function(form) { return #{options[:with]} }" if options[:with]
+    js_options['paramName'] = %('#{options[:param_name]}') if options[:param_name]
+    js_options['callback']   = "function(form, value) { return #{options[:with]} }" if options[:with]
     js_options['clickToEditText'] = %('#{options[:click_to_edit_text]}') if options[:click_to_edit_text]
     js_options['textBetweenControls'] = %('#{options[:text_between_controls]}') if options[:text_between_controls]
     function << (', ' + options_for_javascript(js_options)) unless js_options.empty?
@@ -71,7 +74,8 @@ module InPlaceMacrosHelper
   def in_place_editor_field(object, method, tag_options = {}, in_place_editor_options = {})
     tag = ::ActionView::Helpers::InstanceTag.new(object, method, self)
     tag_options = {:tag => "span", :id => "#{object}_#{method}_#{tag.object.id}_in_place_editor", :class => "in_place_editor_field"}.merge!(tag_options)
-    in_place_editor_options[:url] = in_place_editor_options[:url] || url_for({ :action => "set_#{object}_#{method}", :id => tag.object.id })
+    in_place_editor_options[:url] = in_place_editor_options[:url] || url_for(object)
+    in_place_editor_options[:param_name] ||= "#{object.to_s}[#{method.to_s}]"
     tag.to_content_tag(tag_options.delete(:tag), tag_options) +
     in_place_editor(tag_options[:id], in_place_editor_options)
   end
